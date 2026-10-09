@@ -39,7 +39,30 @@ UNSAFE_COROUTINE_ATTRIBUTES = {"cr_frame", "cr_code"}
 #: unsafe attributes on async generators
 UNSAFE_ASYNC_GENERATOR_ATTRIBUTES = {"ag_code", "ag_frame"}
 
+# ``modifies_known_mutable`` returns on the first matching entry, so concrete
+# types must come before the ABCs they are registered with. ``deque`` is
+# registered as a ``MutableSequence``; listing it after the ABC entry below
+# would leave its own entry unreachable and its ``*left``/``rotate`` methods
+# allowed inside an ``ImmutableSandboxedEnvironment``.
 _mutable_spec: tuple[tuple[type[t.Any], frozenset[str]], ...] = (
+    (
+        deque,
+        frozenset(
+            [
+                "append",
+                "appendleft",
+                "clear",
+                "extend",
+                "extendleft",
+                "insert",
+                "pop",
+                "popleft",
+                "remove",
+                "reverse",
+                "rotate",
+            ]
+        ),
+    ),
     (
         abc.MutableSet,
         frozenset(
@@ -48,6 +71,7 @@ _mutable_spec: tuple[tuple[type[t.Any], frozenset[str]], ...] = (
                 "clear",
                 "difference_update",
                 "discard",
+                "intersection_update",
                 "pop",
                 "remove",
                 "symmetric_difference_update",
@@ -63,22 +87,6 @@ _mutable_spec: tuple[tuple[type[t.Any], frozenset[str]], ...] = (
         abc.MutableSequence,
         frozenset(
             ["append", "clear", "pop", "reverse", "insert", "sort", "extend", "remove"]
-        ),
-    ),
-    (
-        deque,
-        frozenset(
-            [
-                "append",
-                "appendleft",
-                "clear",
-                "extend",
-                "extendleft",
-                "pop",
-                "popleft",
-                "remove",
-                "rotate",
-            ]
         ),
     ),
 )

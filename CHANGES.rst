@@ -13,6 +13,15 @@ Unreleased
 -   Use modern packaging metadata with ``pyproject.toml`` instead of ``setup.cfg``.
     :pr:`1793`
 -   Use ``flit_core`` instead of ``setuptools`` as build backend.
+-   The immutable sandbox now blocks ``set.intersection_update`` (its
+    siblings ``difference_update`` and ``symmetric_difference_update``
+    were already blocked), and the ``deque`` methods ``appendleft``,
+    ``extendleft``, ``popleft``, and ``rotate``. These ``deque`` methods
+    were allowed because the ``deque`` entry in the mutable-method table
+    was unreachable: ``deque`` is a ``MutableSequence``, whose entry
+    preceded it and matched first. The ``deque`` entry is now ordered
+    before the ABC entries, and ``insert`` and ``reverse`` are repeated
+    on it so they remain blocked.
 
 
 Version 3.1.6

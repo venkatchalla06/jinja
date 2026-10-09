@@ -1,3 +1,5 @@
+from collections import deque
+
 import pytest
 from markupsafe import escape
 
@@ -61,6 +63,56 @@ class TestSandbox:
         pytest.raises(SecurityError, env.from_string("{{ [].clear() }}").render)
         pytest.raises(SecurityError, env.from_string("{{ [1].pop() }}").render)
         pytest.raises(SecurityError, env.from_string("{{ {1:2}.clear() }}").render)
+        # set: all in-place mutators are blocked, including intersection_update
+        pytest.raises(SecurityError, env.from_string("{{ s.add(1) }}").render, s={1, 2})
+        pytest.raises(
+            SecurityError,
+            env.from_string("{{ s.intersection_update([1]) }}").render,
+            s={1, 2},
+        )
+        pytest.raises(
+            SecurityError,
+            env.from_string("{{ s.difference_update([1]) }}").render,
+            s={1, 2},
+        )
+        # deque: its own mutators are blocked, not just the MutableSequence ones
+        pytest.raises(
+            SecurityError,
+            env.from_string("{{ d.append(1) }}").render,
+            d=deque([1, 2]),
+        )
+        pytest.raises(
+            SecurityError,
+            env.from_string("{{ d.appendleft(1) }}").render,
+            d=deque([1, 2]),
+        )
+        pytest.raises(
+            SecurityError,
+            env.from_string("{{ d.popleft() }}").render,
+            d=deque([1, 2]),
+        )
+        pytest.raises(
+            SecurityError,
+            env.from_string("{{ d.extendleft([1]) }}").render,
+            d=deque([1, 2]),
+        )
+        pytest.raises(
+            SecurityError,
+            env.from_string("{{ d.rotate(1) }}").render,
+            d=deque([1, 2]),
+        )
+        # insert/reverse stay blocked after the deque entry is reordered
+        # ahead of the MutableSequence entry (regression guard)
+        pytest.raises(
+            SecurityError,
+            env.from_string("{{ d.insert(0, 1) }}").render,
+            d=deque([1, 2]),
+        )
+        pytest.raises(
+            SecurityError,
+            env.from_string("{{ d.reverse() }}").render,
+            d=deque([1, 2]),
+        )
 
     def test_restricted(self, env):
         env = SandboxedEnvironment()
